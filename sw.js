@@ -1,4 +1,4 @@
-const CACHE_NAME = 'Laundry';
+const CACHE_NAME = 'Laundry-v24';
 const urlsToCache = [
   '.',
   '/Laundry/',
