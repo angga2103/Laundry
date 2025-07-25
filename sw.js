@@ -1,41 +1,55 @@
-// Nama cache untuk membedakan dari cache lain.
-const CACHE_NAME = 'laundry-app-v1';
-
-// Daftar semua file "cangkang" aplikasi yang perlu disimpan.
-// Pastikan path ini sesuai dengan struktur folder Anda.
-const assetsToCache = [
-  '/',
+const CACHE_NAME = 'Laundry';
+const urlsToCache = [
+  '.',
   'index.html',
   'manifest.json',
-  'assets/icons/icon-192x192.png',
-  'assets/icons/icon-512x512.png',
-  // Jika Anda sudah menyimpan file CSS dan JS secara lokal:
-  // 'assets/css/tailwind.css',
-  // 'assets/css/all.min.css',
-  // 'assets/js/jsrsasign.min.js',
-  // 'assets/webfonts/fa-solid-900.woff2', // Contoh font awesome
+  'sw.js',
+  'icon-192x192.png',
+  'icon-512x512.png',
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 ];
 
-// Event 'install': Dijalankan saat service worker pertama kali di-install.
-self.addEventListener('install', (event) => {
-  // Tunggu sampai proses caching selesai.
+// Langkah 1: Install - Menyimpan aset ke dalam cache
+self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Caching App Shell...');
-        return cache.addAll(assetsToCache);
+      .then(cache => {
+        console.log('Cache berhasil dibuka');
+        return cache.addAll(urlsToCache);
       })
   );
 });
 
-// Event 'fetch': Dijalankan setiap kali aplikasi meminta sebuah file.
-self.addEventListener('fetch', (event) => {
+// Langkah 2: Fetch - Menyajikan aset dari cache jika tersedia (mode offline)
+self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
-      .then((response) => {
-        // Jika file ada di cache, kembalikan dari cache.
-        // Jika tidak, coba ambil dari jaringan (internet).
-        return response || fetch(event.request);
-      })
+      .then(response => {
+        // Jika file ada di cache, langsung berikan dari cache
+        if (response) {
+          return response;
+        }
+        // Jika tidak, coba ambil dari internet seperti biasa
+        return fetch(event.request);
+      }
+    )
+  );
+});
+
+// Langkah 3: Activate - Membersihkan cache lama jika ada versi baru
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
 });
