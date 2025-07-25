@@ -7,9 +7,9 @@ const urlsToCache = [
   '/Laundry/sw.js',
   '/Laundry/icon-192x192.png',
   '/Laundry/icon-512x512.png',
-  'https://cdn.tailwindcss.com',
-  'https://cdn.jsdelivr.net/npm/chart.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  'https://cdn.tailwindcss.com', // Tailwind Play CDN adalah pengecualian dan bisa dicache seperti ini
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://cdn.jsdelivr.net/npm/jsrsasign/lib/jsrsasign.min.js'
 ];
 
 // Langkah 1: Install - Menyimpan aset ke dalam cache
