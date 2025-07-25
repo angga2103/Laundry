@@ -1,11 +1,12 @@
 const CACHE_NAME = 'Laundry';
 const urlsToCache = [
   '.',
-  'index.html',
-  'manifest.json',
-  'sw.js',
-  'icon-192x192.png',
-  'icon-512x512.png',
+  '/Laundry/',
+  '/Laundry/index.html',
+  '/Laundry/manifest.json',
+  '/Laundry/sw.js',
+  '/Laundry/icon-192x192.png',
+  '/Laundry/icon-512x512.png',
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/chart.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
