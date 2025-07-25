@@ -1,0 +1,22 @@
+{
+  "name": "Aplikasi Laundry Modern",
+  "short_name": "Laundry App",
+  "description": "Aplikasi kasir dan manajemen untuk usaha laundry.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "assets/icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Aplikasi Laundry Modern v2.4</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsrsasign/lib/jsrsasign.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .nota-mono { font-family: 'Fira Code', 'Courier New', monospace; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; color: #374151; }
+        .card { background: #ffffff; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+        .input-field { border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+        .input-field:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; transition: all 0.3s ease-in-out; display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; }
+        .btn-primary { background-image: linear-gradient(to right, #4f46e5, #6366f1); color: white; padding-top: 0.875rem; padding-bottom: 0.875rem; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2), 0 2px 4px -2px rgba(79, 70, 229, 0.1); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.25), 0 4px 6px -4px rgba(79, 70, 229, 0.15); }
+        .btn-secondary { background-color: #e0e7ff; color: #4338ca; }
+        .btn-danger { background-color: #fee2e2; color: #991b1b; }
+        .btn-disabled { background-image: none; background-color: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+        .btn-disabled:hover { transform: none; box-shadow: none; }
+        .modal-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background-color: rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in-out; }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .modal-content { transform: scale(0.95); transition: transform 0.3s ease-in-out; }
+        .modal-overlay.show .modal-content { transform: scale(1); }
+        #toast-container { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; }
+        .toast { display: flex; align-items: center; gap: 0.75rem; padding: 1rem; border-radius: 0.75rem; color: white; min-width: 300px; max-width: 400px; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05); transform: translateX(120%); opacity: 0; transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
+        .toast.show { transform: translateX(0); opacity: 1; }
+        .toast i { font-size: 1.5rem; }
+        .toast span { font-weight: 500; }
+        .toast-success { background-color: #28a745; }
+        .toast-error { background-color: #dc3545; }
+        .toast-info { background-color: #17a2b8; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
+        #backup-indicator { position: absolute; top: 6px; right: 4px; width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%; border: 2px solid white; animation: pulse 2s infinite; }
+        .tag { display: inline-block; padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 500; border-radius: 9999px; }
+        .tag-green { background-color: #d1fae5; color: #065f46; }
+        .tag-red { background-color: #fee2e2; color: #991b1b; }
+        .tag-blue { background-color: #dbeafe; color: #1e40af; }
+        .tag-yellow { background-color: #fef3c7; color: #92400e; }
+        .tag-gray { background-color: #f3f4f6; color: #4b5563; }
+        .status-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+        .dot-blue { background-color: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.7); }
+        .dot-yellow { background-color: #f59e0b; }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+</head>
+<body class="py-8 px-4 bg-slate-100">
+
+<div id="toast-container"></div>
+<div id="donationToast" class="fixed bottom-5 right-5 w-80 bg-white rounded-xl shadow-2xl p-5 border transition-transform transform translate-y-[150%] duration-500 z-[99]">
+    <button onclick="this.parentElement.style.transform = 'translateY(150%)'" class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+    <div class="flex items-center gap-3 mb-4"><div class="bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-full w-12 h-12 flex items-center justify-center flex-shrink-0"><i class="fas fa-rocket text-xl"></i></div><div><p class="font-bold text-gray-800">Aktivasi Fitur Premium!</p><p class="text-sm text-gray-600">Buka semua fitur dan dukung developer.</p></div></div>
+    <button onclick="kirimApresiasiWA()" class="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold py-3 px-4 rounded-lg hover:from-green-600 hover:to-teal-600 transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"><i class="fab fa-whatsapp"></i> Minta Aktivasi via WA</button>
+</div>
+
+<header class="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md z-40 mx-4 md:mx-auto md:max-w-5xl mt-4 p-3 flex justify-between items-center rounded-lg shadow-sm">
+    <h1 class="text-xl font-bold flex items-center gap-3 text-gray-800"><i class="fas fa-tshirt text-indigo-600"></i><span id="namaLaundryHeader">Aplikasi Laundry</span></h1>
+    <div class="flex items-center gap-1 md:gap-2">
+        <button type="button" id="showRekapButton" class="text-gray-600 hover:text-indigo-800 flex items-center justify-center w-10 h-10 rounded-full hover:bg-indigo-100"><i class="fas fa-chart-line fa-lg"></i></button>
+        <button type="button" id="showDbButton" class="font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-indigo-100"><i class="fas fa-search"></i><span class="hidden md:inline">Cari Order</span></button>
+        <div class="relative"><button type="button" id="showSettingsButton" class="text-gray-600 hover:text-indigo-800 flex items-center justify-center w-10 h-10 rounded-full hover:bg-indigo-100" title="Pengaturan"><i class="fas fa-cog fa-lg"></i></button><span id="backup-indicator" class="hidden"></span></div>
+    </div>
+</header>
+
+<main class="mt-24"><div class="max-w-5xl mx-auto flex flex-col lg:flex-row gap-8"><div class="w-full lg:w-3/5"><div class="card p-6"><h2 class="text-2xl font-bold mb-6 flex items-center gap-3 text-gray-700"><i class="fas fa-edit text-indigo-500"></i> <span id="formTitle">Input Order Baru</span></h2><div class="space-y-4"><input id="iOrderId" type="hidden"> <input id="iNamaPelanggan" class="input-field w-full" placeholder="Nama Pelanggan"><input id="iNoHp" class="input-field w-full" placeholder="No. WhatsApp"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><input id="iTanggalMasuk" class="input-field w-full" type="datetime-local"><input id="iTanggalSelesai" class="input-field w-full" type="date"></div></div><div class="mt-6"><h3 class="font-semibold text-lg mb-3 text-gray-600">Rincian Layanan</h3><div id="listLayanan" class="space-y-4"></div><button type="button" id="tambahLayananButton" class="mt-4 btn btn-secondary w-full"><i class="fas fa-plus"></i> Tambah Layanan</unbutton></div><div class="mt-6 border-t pt-6 space-y-4"><div class="flex items-center justify-between"><label for="iDiskon" class="font-medium text-gray-700">Diskon (Rp)</label><input id="iDiskon" type="number" class="input-field w-40 text-right" placeholder="0"></div><div class="flex items-center justify-between"><label for="iExpress" class="font-medium text-gray-700 flex items-center gap-2"><input type="checkbox" id="iExpress" class="h-4 w-4 rounded text-indigo-600 focus:ring-indigo-500"> Layanan Express</label><span id="expressFeeText" class="font-semibold text-gray-800"></span></div></div><div class="mt-6"><button type="button" id="simpanButton" class="w-full btn btn-primary"><i class="fas fa-save"></i> Simpan & Kirim Nota</button><button type="button" id="batalEditButton" class="hidden w-full btn btn-secondary bg-gray-200 text-gray-800 mt-2"><i class="fas fa-times"></i> Batal Edit</button></div></div></div><div class="w-full lg:w-2/5"><div class="sticky top-28"><h2 class="text-xl font-bold mb-3 flex items-center gap-3 text-gray-700"><i class="fas fa-receipt text-indigo-500"></i> Preview Nota</h2><div class="border rounded-xl p-4 bg-white"><pre id="previewStruk" class="nota-mono"></pre></div></div></div></div></main>
+
+<div id="databaseView" class="modal-overlay"><div class="modal-content bg-slate-50 rounded-2xl shadow-xl w-full max-w-4xl h-[90vh] flex flex-col"><div class="p-4 border-b flex justify-between items-center"><h2 id="dbModalTitle" class="text-xl font-bold text-gray-800">Cari Order Pelanggan</h2><button onclick="hideModal('databaseView')" class="text-gray-500 hover:text-red-600 hover:bg-red-100 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times"></i></button></div><div id="customerListContainer" class="flex flex-col p-4 overflow-y-auto"><input id="searchCustomer" type="text" class="input-field w-full mb-4" placeholder="Cari berdasarkan Nama atau Kode Pengambilan..."><div id="customerList" class="space-y-2"></div></div><div id="orderDetailsContainer" class="hidden flex-col p-4 overflow-y-auto"><button id="backToCustomerList" class="mb-4 self-start bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2"><i class="fas fa-arrow-left"></i>Kembali</button><div id="orderDetails" class="space-y-4"></div></div></div></div>
+<div id="settingsView" class="modal-overlay"><div class="modal-content bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]"><div class="p-5 border-b flex-shrink-0 flex justify-between items-center"><h2 class="text-xl font-bold text-gray-800">Pengaturan</h2><button onclick="hideModal('settingsView')" class="text-gray-500 hover:text-red-600 hover:bg-red-100 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times"></i></button></div><div class="p-5 space-y-4 overflow-y-auto"><div><label for="sNamaLaundry" class="font-medium text-gray-700">Nama Laundry</label><input id="sNamaLaundry" type="text" class="input-field w-full mt-1"></div><div><label for="sAlamatLaundry" class="font-medium text-gray-700">Alamat Laundry</label><input id="sAlamatLaundry" type="text" class="input-field w-full mt-1"></div><div><label for="sWaLaundry" class="font-medium text-gray-700">Nomor WhatsApp</label><input id="sWaLaundry" type="text" class="input-field w-full mt-1"></div><hr class="my-4"><div class="space-y-3"><h3 class="text-lg font-semibold text-gray-700">Manajemen Layanan</h3><p class="text-sm text-gray-500">Atur layanan yang tersedia di laundry Anda.</p><div id="layananEditorContainer" class="space-y-3"></div><button id="tambahLayananEditor" class="btn btn-secondary w-full !py-2"><i class="fas fa-plus"></i>Tambah Baris Layanan</button></div><hr class="my-4"><div class="space-y-3"><h3 class="text-lg font-semibold text-gray-700">Lisensi Aplikasi</h3><p class="text-sm text-gray-500">ID Aplikasi Anda: <code id="installationId" class="font-mono bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded-md cursor-pointer" title="Klik untuk menyalin"></code></p><div id="licenseStatus" class="p-3 rounded-lg text-center text-sm"></div><div id="licenseArea"><label for="licenseKey" class="font-medium text-gray-700">Kunci Lisensi</label><div class="flex gap-2 mt-1"><input id="licenseKey" class="input-field w-full" placeholder="Masukkan kunci aktivasi..."><button onclick="activateLicense()" class="btn btn-primary !py-2">Aktifkan</button></div></div></div><hr class="my-4"><div class="space-y-3"><h3 class="text-lg font-semibold text-gray-700">Backup & Restore Data</h3><p class="text-sm text-gray-500">Simpan semua data order, rekap, dan pengaturan.</p><div class="flex gap-4"><button id="backupButton" class="w-full btn btn-secondary bg-blue-100 text-blue-800"><i class="fas fa-download"></i>Backup Data</button><button id="restoreButton" class="w-full btn btn-secondary bg-green-100 text-green-800"><i class="fas fa-upload"></i>Restore Data</button><input type="file" id="restoreFile" class="hidden" accept=".json"></div></div></div><div class="p-5 bg-gray-50 rounded-b-2xl mt-auto flex-shrink-0"><button id="saveSettingsButton" class="w-full btn btn-primary"><i class="fas fa-save"></i> Simpan Semua Perubahan</button></div></div></div>
+<div id="rekapView" class="modal-overlay"><div class="modal-content bg-slate-50 rounded-2xl shadow-xl w-full max-w-4xl h-[90vh] flex flex-col"><div class="p-4 border-b flex justify-between items-center"><h2 class="text-xl font-bold text-gray-800">Rekap Keuangan</h2><button onclick="hideModal('rekapView')" class="text-gray-500 hover:text-red-600 hover:bg-red-100 rounded-full w-8 h-8 flex items-center justify-center"><i class="fas fa-times"></i></button></div><div class="p-4 border-b"><h3 class="font-semibold mb-2">Tambah Transaksi Baru</h3><form id="formTransaksi" class="grid grid-cols-1 md:grid-cols-5 gap-3"><input id="transaksiId" type="hidden"><input id="transaksiTanggal" type="date" class="input-field"><input id="transaksiKeterangan" type="text" class="input-field" placeholder="Keterangan"><select id="transaksiKategori" class="input-field hidden"><option value="Lainnya">Lainnya</option><option value="Deterjen & Pewangi">Deterjen & Pewangi</option><option value="Listrik & Air">Listrik & Air</option><option value="Gaji Karyawan">Gaji Karyawan</option><option value="Sewa Tempat">Sewa Tempat</option></select><input id="transaksiJumlah" type="number" class="input-field" placeholder="Jumlah (Rp)"><div class="flex gap-4 items-center"><label><input type="radio" name="transaksiTipe" value="pendapatan" checked> Pendapatan</label><label><input type="radio" name="transaksiTipe" value="pengeluaran"> Pengeluaran</label></div><button type="submit" class="btn btn-primary w-full md:col-span-5"><i class="fas fa-plus"></i> Simpan Transaksi</button></form></div><div class="flex-1 p-4 overflow-y-auto"><div class="flex justify-end mb-4"><select id="rekapFilterBulan" class="input-field"></select></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-center"><div class="bg-green-100 p-4 rounded-lg"><p class="text-sm text-green-800">Total Pendapatan</p><p id="rekapPendapatan" class="text-2xl font-bold text-green-800"></p></div><div class="bg-red-100 p-4 rounded-lg"><p class="text-sm text-red-800">Total Pengeluaran</p><p id="rekapPengeluaran" class="text-2xl font-bold text-red-800"></p></div><div class="bg-indigo-100 p-4 rounded-lg"><p class="text-sm text-indigo-800">Saldo Akhir</p><p id="rekapSaldo" class="text-2xl font-bold text-indigo-800"></p></div></div><div id="rekapList" class="space-y-2"></div></div></div></div>
+<div id="premiumModal" class="modal-overlay"><div class="modal-content card max-w-md w-full p-8 text-center relative"><button onclick="hideModal('premiumModal')" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 w-8 h-8 rounded-full hover:bg-red-100 flex items-center justify-center"><i class="fas fa-times"></i></button><div class="text-6xl text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-indigo-600 mb-4"><i class="fas fa-gem"></i></div><h2 class="text-2xl font-bold text-gray-800">Fitur Premium</h2><p class="text-gray-600 mt-2 mb-6">Fitur ini tersedia untuk pengguna premium. Tingkatkan pengalaman Anda dan kelola laundry lebih efisien!</p><div class="space-y-3 text-left bg-slate-50 p-4 rounded-lg"><p class="flex items-center gap-3"><i class="fas fa-check-circle text-green-500"></i><span class="font-medium">Simpan & Kelola Order Tanpa Batas</span></p><p class="flex items-center gap-3"><i class="fas fa-check-circle text-green-500"></i><span class="font-medium">Pencarian Cepat & Riwayat Pelanggan</span></p><p class="flex items-center gap-3"><i class="fas fa-check-circle text-green-500"></i><span class="font-medium">Backup & Restore Data dengan Aman</span></p><p class="flex items-center gap-3"><i class="fas fa-check-circle text-green-500"></i><span class="font-medium">Dukungan Prioritas dari Developer</span></p></div><button onclick="kirimApresiasiWA()" class="w-full btn btn-primary mt-6 !text-base"><i class="fab fa-whatsapp"></i> Aktivasi Sekarang via WA</button></div></div>
+
+<script>
+// --- KONFIGURASI, DATA, & VARIABEL LISENSI---
+const ORDER_LS_KEY = "data_laundry_app_v7";
+const CONFIG_LS_KEY = "config_laundry_app_v2";
+const REKAP_LS_KEY = "rekap_laundry_app_v1";
+const BACKUP_STATUS_KEY = "backup_status_laundry_v1";
+const LS_INSTALL_ID = "laundry_install_id_v1";
+const LS_LICENSE_KEY = "laundry_license_key_v1";
+const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIIBITANBgkqhkiG9w0BAQEFAAOCAQ4AMIIBCQKCAQBlaoHnhEdDnnPP5OpljhmL
+gbg9RFlr0Utps5wu5smatNmK9bLok40U+Tftb49gUizPIShJq68/LWkP0j/2aGiS
+S306fXk6nWP6eH32egrFwHOtmg7Ikbto2z7pEO1dGrjuk8ya6TqHsY1qOdrVgvjP
+kp4ebMDbVjA+7n7TQF0ch0a8pRaj7i9jDaSoo9p5QsDiCJfnUcXrJbBkmoqOKlCb
+QiDGDetD90vZxDsyHXckq6NIba7UmU8up2OCETUITH1hSEuM8EVcMj46NinjAtAI
+3+1J9WPHLCblaldSeTVgiTwOySu/Vm4Pp/sQm/7KaDPrZNAv3ChVtFXq1/UHmXrl
+AgMBAAE=
+-----END PUBLIC KEY-----`;
+
+let NAMA_LAUNDRY, ALAMAT_LAUNDRY, WA_LAUNDRY;
+let layananList = {};
+const HARGA_EXPRESS = 10000;
+const STATUS_PENGERJAAN = ['Diterima', 'Proses Cuci', 'Proses Setrika', 'Siap Diambil', 'Sudah Diambil'];
+let IS_PREMIUM = false;
+
+// --- FUNGSI HELPER & UI GLOBAL---
+function showModal(modalId) { document.getElementById(modalId)?.classList.add('show'); }
+function hideModal(modalId) { document.getElementById(modalId)?.classList.remove('show'); }
+function formatRupiah(angka) { return Number(angka || 0).toLocaleString('id-ID'); }
+function padBoth(kiri, kanan, lebar) { const sisa = lebar - (kiri.length + kanan.length); return kiri + ' '.repeat(sisa > 0 ? sisa : 1) + kanan; }
+function formatTanggal(val, sertakanJam = true) {
+    if (!val) return '';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    const tgl = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    return sertakanJam ? `${tgl} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` : tgl;
+}
+function formatNoHP(no) {
+    if (!no) return '';
+    no = String(no).replace(/[\s\.\-]/g, "");
+    if (no.startsWith('0')) return '62' + no.slice(1);
+    if (no.startsWith('+')) return no.slice(1);
+    return no;
+}
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) return;
+    const toast = document.createElement('div');
+    const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle' };
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `<i class="fas ${icons[type]}"></i><span>${message}</span>`;
+    toastContainer.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 4000);
+}
+function generateKodeUnik() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let result = '';
+    for (let i = 0; i < 5; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+function copyToClipboard(text, message = 'Teks disalin!') {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(message, 'success');
+    }).catch(err => {
+        console.error('Gagal menyalin:', err);
+        showToast('Gagal menyalin teks.', 'error');
+    });
+}
+function getAllOrders() { return JSON.parse(localStorage.getItem(ORDER_LS_KEY) || "{}"); }
+function saveAllOrders(db) { localStorage.setItem(ORDER_LS_KEY, JSON.stringify(db)); }
+
+// --- FUNGSI LISENSI & DONASI ---
+function generateUUID() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
+function validateLicenseKey(installId, licenseKey) {
+    if (!licenseKey || !installId) return { isValid: false };
+    if (PUBLIC_KEY.includes("...")) {
+        console.warn("VALIDASI LISENSI DILONCATI: Kunci Publik belum diatur!");
+        return { isValid: true, expires: '2099-12-31' };
+    }
+    try {
+        const decodedKey = atob(licenseKey);
+        const parts = decodedKey.split('|');
+        if (parts.length !== 3) return { isValid: false, reason: "Format kunci salah." };
+        const [keyInstallId, expiryDateStr, signatureHex] = parts;
+        if (keyInstallId !== installId) return { isValid: false, reason: "Kunci ini untuk ID Aplikasi yang berbeda." };
+        const dataToVerify = keyInstallId + '|' + expiryDateStr;
+        const sig = new KJUR.crypto.Signature({ "alg": "SHA256withRSA" });
+        sig.init(PUBLIC_KEY);
+        sig.updateString(dataToVerify);
+        const isValidSignature = sig.verify(signatureHex);
+        if (!isValidSignature) return { isValid: false, reason: "Tanda tangan tidak valid." };
+        const expiryDate = new Date(expiryDateStr + 'T23:59:59');
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        if (expiryDate < today) return { isValid: false, isExpired: true, expires: expiryDateStr };
+        return { isValid: true, expires: expiryDateStr };
+    } catch (e) {
+        console.error("License validation error:", e);
+        return { isValid: false, reason: "Error saat memproses kunci." };
+    }
+}
+function updateAppLockState(isLicensed) {
+    IS_PREMIUM = isLicensed;
+    const backupBtn = document.getElementById('backupButton');
+    if (isLicensed) {
+        backupBtn.disabled = false;
+        backupBtn.classList.remove('btn-disabled');
+    } else {
+        backupBtn.disabled = true;
+        backupBtn.classList.add('btn-disabled');
+    }
+}
+function activateLicense() {
+    const installId = localStorage.getItem(LS_INSTALL_ID);
+    const licenseKey = document.getElementById('licenseKey').value.trim();
+    if (!licenseKey) return showToast("Kunci lisensi tidak boleh kosong.", "error");
+    
+    const validationResult = validateLicenseKey(installId, licenseKey);
+    if (validationResult.isValid) {
+        localStorage.setItem(LS_LICENSE_KEY, licenseKey);
+        initLicenseSystem();
+        showToast('Aplikasi berhasil diaktivasi!', 'success');
+    } else {
+        const reason = validationResult.isExpired ? `Kunci lisensi telah kedaluwarsa.` : (validationResult.reason || 'Kunci lisensi tidak valid.');
+        const statusEl = document.getElementById('licenseStatus');
+        statusEl.innerHTML = `<i class="fas fa-times-circle text-red-600"></i><span class="ml-2 font-semibold text-red-700">${reason}</span>`;
+        statusEl.className = 'p-3 rounded-lg text-center text-sm bg-red-100';
+        updateAppLockState(false);
+    }
+}
+function showDonationToast() { document.getElementById('donationToast').style.transform = 'translateY(0)'; }
+function kirimApresiasiWA() {
+    const installId = localStorage.getItem(LS_INSTALL_ID) || 'ID tidak ditemukan';
+    const noWA = '6281775700114';
+    const pesan = `Halo, saya sangat terbantu dengan Aplikasi Laundry Modern v2.4.\n\nSaya ingin memberikan apresiasi dan mengajukan permohonan untuk aktivasi fitur premium.\n\nID Aplikasi saya adalah:\n*${installId}*\n\nTerima kasih.`;
+    const url = `https://wa.me/${noWA}?text=${encodeURIComponent(pesan)}`;
+    window.open(url, '_blank');
+}
+function initLicenseSystem() {
+    let installId = localStorage.getItem(LS_INSTALL_ID);
+    if (!installId) {
+        installId = generateUUID();
+        localStorage.setItem(LS_INSTALL_ID, installId);
+    }
+    document.getElementById('installationId').textContent = installId;
+    document.getElementById('installationId').onclick = () => copyToClipboard(installId, 'ID Aplikasi disalin!');
+    
+    const licenseKey = localStorage.getItem(LS_LICENSE_KEY);
+    const statusEl = document.getElementById('licenseStatus');
+    const licenseArea = document.getElementById('licenseArea');
+    
+    if (!licenseKey) {
+        statusEl.innerHTML = `<i class="fas fa-exclamation-triangle text-yellow-600"></i><span class="ml-2 font-semibold text-yellow-700">Aplikasi belum diaktivasi.</span>`;
+        statusEl.className = 'p-3 rounded-lg text-center text-sm bg-yellow-100';
+        updateAppLockState(false);
+        setTimeout(showDonationToast, 5000);
+        return;
+    }
+    
+    const validationResult = validateLicenseKey(installId, licenseKey);
+    if (validationResult.isValid) {
+        const tgl = new Date(validationResult.expires).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        statusEl.innerHTML = `<i class="fas fa-check-circle text-green-600"></i><span class="ml-2 font-semibold text-green-700">Lisensi Premium Aktif hingga ${tgl}</span>`;
+        statusEl.className = 'p-3 rounded-lg text-center text-sm bg-green-100';
+        licenseArea.style.display = 'none';
+        updateAppLockState(true);
+    } else {
+        const reason = validationResult.isExpired ? `Lisensi Anda kedaluwarsa.` : 'Lisensi tidak valid.';
+        statusEl.innerHTML = `<i class="fas fa-times-circle text-red-600"></i><span class="ml-2 font-semibold text-red-700">${reason}</span>`;
+        statusEl.className = 'p-3 rounded-lg text-center text-sm bg-red-100';
+        licenseArea.style.display = 'block';
+        updateAppLockState(false);
+        setTimeout(showDonationToast, 3000);
+    }
+}
+
+// --- FUNGSI MANAJEMEN LAYANAN DINAMIS ---
+function renderLayananEditor() {
+    const container = document.getElementById('layananEditorContainer');
+    container.innerHTML = '';
+    Object.keys(layananList).forEach(namaLayanan => {
+        const data = layananList[namaLayanan];
+        tambahLayananEditorRow(namaLayanan, data.harga, data.satuan);
+    });
+}
+function tambahLayananEditorRow(nama = '', harga = '', satuan = 'Kg') {
+    const container = document.getElementById('layananEditorContainer');
+    const div = document.createElement('div');
+    div.className = 'layanan-editor-row grid grid-cols-12 gap-2 items-center';
+    div.innerHTML = `<input type="text" value="${nama}" placeholder="Nama Layanan" class="col-span-5 input-field layanan-nama"><input type="number" value="${harga}" placeholder="Harga" class="col-span-3 input-field layanan-harga"><select class="col-span-3 input-field layanan-satuan"><option value="Kg" ${satuan === 'Kg' ? 'selected' : ''}>Kg</option><option value="Pcs" ${satuan === 'Pcs' ? 'selected' : ''}>Pcs</option><option value="m²" ${satuan === 'm²' ? 'selected' : ''}>m²</option></select><button onclick="this.parentElement.remove()" class="col-span-1 btn btn-danger !p-2 h-10 w-10"><i class="fas fa-trash-alt"></i></button>`;
+    container.appendChild(div);
+}
+// --- FUNGSI PENGATURAN & UI ---
+function loadConfig() {
+    let config = JSON.parse(localStorage.getItem(CONFIG_LS_KEY));
+    if (!config || !config.layanan) {
+        config = {
+            nama: "Laundry Modern", alamat: "Jl. Bersih Selalu No. 1", wa: "081234567890",
+            layanan: { 'Cuci Kering Setrika':{harga:8000,satuan:"Kg"}, 'Setrika Saja':{harga:5000,satuan:"Kg"}, 'Bed Cover King':{harga:25000,satuan:"Pcs"}, 'Bed Cover Queen':{harga:20000,satuan:"Pcs"} }
+        };
+        localStorage.setItem(CONFIG_LS_KEY, JSON.stringify(config));
+    }
+    NAMA_LAUNDRY = config.nama; ALAMAT_LAUNDRY = config.alamat; WA_LAUNDRY = config.wa; layananList = config.layanan;
+    updateUiWithConfig();
+}
+function saveConfig() {
+    // Validasi input Pengaturan Umum
+    const namaLaundry = document.getElementById('sNamaLaundry').value.trim();
+    const alamatLaundry = document.getElementById('sAlamatLaundry').value.trim();
+    const waLaundry = document.getElementById('sWaLaundry').value.trim();
+    if (!namaLaundry) return showToast('Nama Laundry tidak boleh kosong.', 'error');
+    if (!alamatLaundry) return showToast('Alamat Laundry tidak boleh kosong.', 'error');
+    if (!waLaundry) return showToast('Nomor WhatsApp tidak boleh kosong.', 'error');
+    if (!/^\d{10,15}$/.test(formatNoHP(waLaundry))) return showToast('Format Nomor WhatsApp laundry tidak valid.', 'error');
+
+    const newLayananList = {};
+    const layananRows = document.querySelectorAll('.layanan-editor-row');
+    for (const row of layananRows) {
+        const nama = row.querySelector('.layanan-nama').value.trim();
+        const harga = parseFloat(row.querySelector('.layanan-harga').value) || 0;
+        const satuan = row.querySelector('.layanan-satuan').value;
+
+        if (nama && harga > 0) {
+            newLayananList[nama] = { harga, satuan };
+        } else if (nama && harga <= 0) {
+            return showToast(`Layanan '${nama}' harus memiliki harga lebih dari 0.`, 'error');
+        } else if (!nama && harga > 0) {
+            return showToast(`Ada layanan dengan harga tapi tanpa nama. Harap lengkapi atau hapus.`, 'error');
+        }
+    }
+    
+    const newConfig = {
+        nama: namaLaundry, alamat: alamatLaundry, wa: waLaundry,
+        layanan: newLayananList
+    };
+    localStorage.setItem(CONFIG_LS_KEY, JSON.stringify(newConfig));
+    loadConfig(); 
+    showToast('Pengaturan berhasil disimpan!', 'success'); 
+    hideModal('settingsView'); 
+    resetForm();
+}
+function updateUiWithConfig() { document.getElementById('namaLaundryHeader').textContent = NAMA_LAUNDRY; renderStruk(); }
+// --- FUNGSI REKAP KEUANGAN ---
+function showRekap() { showModal('rekapView'); populateBulanFilter(); renderRekap(); }
+function getTransaksi() { return JSON.parse(localStorage.getItem(REKAP_LS_KEY) || "[]"); }
+function saveTransaksi(transaksi) { localStorage.setItem(REKAP_LS_KEY, JSON.stringify(transaksi)); }
+function populateBulanFilter() { const transaksi = getTransaksi(); const filterEl = document.getElementById('rekapFilterBulan'); const months = ["Semua Bulan", ...new Set(transaksi.map(t => t.tanggal.substring(0, 7)))]; filterEl.innerHTML = months.map(m => `<option value="${m}">${m === 'Semua Bulan' ? 'Semua Bulan' : new Date(m+'-02').toLocaleString('id-ID', {month: 'long', year: 'numeric'})}</option>`).join(''); }
+function renderRekap() {
+    const allTransaksi = getTransaksi();
+    const filterBulan = document.getElementById('rekapFilterBulan').value;
+    const listEl = document.getElementById('rekapList');
+    listEl.innerHTML = "";
+    const filteredTransaksi = (filterBulan && filterBulan !== "Semua Bulan") ? allTransaksi.filter(t => t.tanggal.startsWith(filterBulan)) : allTransaksi;
+    let totalPendapatan = 0, totalPengeluaran = 0;
+    filteredTransaksi.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+    filteredTransaksi.forEach(t => {
+        const itemEl = document.createElement('div');
+        const isPendapatan = t.tipe === 'pendapatan';
+        itemEl.className = `p-3 bg-white rounded-lg shadow-sm border-l-4 ${isPendapatan ? 'border-green-400' : 'border-red-400'} flex justify-between items-center`;
+        const kategoriText = t.kategori ? `<p class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full inline-block">${t.kategori}</p>` : '';
+        itemEl.innerHTML = `<div><p class="font-semibold">${t.keterangan}</p><p class="text-sm text-gray-500">${formatTanggal(t.tanggal, false)} ${kategoriText}</p></div><div class="text-right"><p class="font-bold text-lg ${isPendapatan ? 'text-green-600' : 'text-red-600'}">${isPendapatan ? '+' : '-'} Rp ${formatRupiah(t.jumlah)}</p></div>`;
+        listEl.appendChild(itemEl);
+        isPendapatan ? totalPendapatan += t.jumlah : totalPengeluaran += t.jumlah;
+    });
+    document.getElementById('rekapPendapatan').textContent = `Rp ${formatRupiah(totalPendapatan)}`;
+    document.getElementById('rekapPengeluaran').textContent = `Rp ${formatRupiah(totalPengeluaran)}`;
+    document.getElementById('rekapSaldo').textContent = `Rp ${formatRupiah(totalPendapatan - totalPengeluaran)}`;
+}
+function addTransaksi(transaksi) { const allTransaksi = getTransaksi(); transaksi.id = `tx_${Date.now()}`; allTransaksi.push(transaksi); saveTransaksi(allTransaksi); }
+// --- FUNGSI INTI ---
+function resetForm() {
+    document.getElementById('formTitle').textContent = 'Input Order Baru'; document.getElementById('iOrderId').value = ''; document.getElementById('iNamaPelanggan').value = ''; document.getElementById('iNoHp').value = ''; document.getElementById('iTanggalSelesai').value = ''; document.getElementById('iDiskon').value = ''; document.getElementById('iExpress').checked = false; document.getElementById('listLayanan').innerHTML = ''; document.getElementById('batalEditButton').classList.add('hidden');
+    const today = new Date(); document.getElementById('iTanggalMasuk').value = `${today.toISOString().slice(0, 10)}T${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+    tambahLayananCard(); renderStruk();
+}
+function tambahLayananCard(data = {}) { const c = document.getElementById("listLayanan"), d = document.createElement("div"); d.className = "layanan-card relative rounded-xl border bg-slate-50 shadow-sm p-4"; let e = '<option value="">Pilih Layanan</option>'; for (const f in layananList) e += `<option value="${f}" ${data.nama === f ? "selected" : ""}>${f}</option>`; d.innerHTML = `<button type="button" class="delete-layanan absolute top-3 right-3 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-full w-7 h-7 flex items-center justify-center transition-colors"><i class="fas fa-times"></i></button><div class="flex flex-col md:flex-row gap-4"><div class="flex-grow"><label class="text-xs font-medium text-gray-500">Layanan</label><select class="layanan input-field w-full mt-1">${e}</select></div><div class="flex-shrink-0"><label class="text-xs font-medium text-gray-500">Qty</label><div class="flex items-center"><input type="number" min="0" step="0.1" class="qty input-field w-24 mt-1 rounded-r-none" value="${data.qty || ""}"><input class="satuan input-field w-20 mt-1 bg-gray-200 rounded-l-none border-l-0 text-center" readonly value="${data.satuan || ""}"></div></div></div><div class="mt-3 border-t pt-3 grid grid-cols-2 gap-4"><div class="flex-grow"><label class="text-xs font-medium text-gray-500">Harga Satuan (Rp)</label><input class="harga input-field w-full mt-1" value="${data.harga ? formatRupiah(data.harga) : ""}"></div><div class="text-right"><label class="text-xs font-medium text-gray-500">Subtotal</label><p class="subtotal-display text-2xl font-bold text-indigo-600 mt-1">Rp 0</p></div></div>`; c.appendChild(d) }
+function getOrderForm() { const a = []; document.querySelectorAll(".layanan-card").forEach(b => { const c = b.querySelector(".layanan").value, d = parseFloat(b.querySelector(".qty").value) || 0, e = b.querySelector(".satuan").value, f = parseInt(b.querySelector(".harga").value.replace(/\D/g, "")) || 0; if (c || d > 0) { a.push({ nama: c, qty: d, satuan: e, harga: f }) } }); const isExpress = document.getElementById("iExpress").checked; return { id: document.getElementById("iOrderId").value || `order_${Date.now()}`, pelanggan: document.getElementById("iNamaPelanggan").value.trim(), noHp: document.getElementById("iNoHp").value.trim(), tglMasuk: document.getElementById("iTanggalMasuk").value, tglSelesai: document.getElementById("iTanggalSelesai").value, layanan: a, diskon: parseFloat(document.getElementById("iDiskon").value) || 0, isExpress: isExpress, hargaExpress: isExpress ? HARGA_EXPRESS : 0, kodeUnik: generateKodeUnik(), statusPengerjaan: "Diterima", statusPembayaran: "Belum Lunas" } }
+function makeNota(a) { const subtotal = a.layanan.reduce((sum, item) => sum + item.qty * item.harga, 0); const totalSetelahDiskon = subtotal - (a.diskon || 0); const grandTotal = totalSetelahDiskon + (a.hargaExpress || 0); let b = `\n** ${NAMA_LAUNDRY} **\n${ALAMAT_LAUNDRY}\nWA: ${WA_LAUNDRY}\n================================\n`; b += `Pelanggan : ${a.pelanggan || "-"}\nNo. HP    : ${a.noHp || "-"}\n`, b += `Tgl Masuk : ${formatTanggal(a.tglMasuk)}\nTgl Selesai: ${a.tglSelesai ? formatTanggal(a.tglSelesai, !1) : "-"}\n`, b += `Status Bayar: ${a.statusPembayaran || 'Belum Lunas'}\n`, b += "--------------------------------\n", a.layanan.forEach(d => { const e = d.qty * d.harga; b += `${d.nama}\n`, b += padBoth(`${d.qty} ${d.satuan} x ${formatRupiah(d.harga)}`, `Rp ${formatRupiah(e)}`, 32) + "\n" }), b += "--------------------------------\n", b += padBoth("Subtotal:", `Rp ${formatRupiah(subtotal)}`, 32) + "\n"; if (a.diskon > 0) b += padBoth("Diskon:", `- Rp ${formatRupiah(a.diskon)}`, 32) + "\n"; if (a.isExpress) b += padBoth("Biaya Express:", `+ Rp ${formatRupiah(a.hargaExpress)}`, 32) + "\n"; b += "================================\n", b += padBoth("TOTAL BAYAR:", `Rp ${formatRupiah(grandTotal)}`, 32) + "\n\n", b += "Terima kasih! Ini adalah bukti transaksi Anda.\nKami akan menghubungi Anda lagi setelah laundry selesai."; return b }
+function renderStruk() { document.querySelectorAll(".layanan-card").forEach(a => { const b = parseFloat(a.querySelector(".qty").value) || 0, c = parseInt(a.querySelector(".harga").value.replace(/\D/g, "")) || 0, subtotalEl = a.querySelector(".subtotal-display"); subtotalEl.textContent = b && c ? `Rp ${formatRupiah(b * c)}` : "Rp 0" }); const d = getOrderForm(); const expressFeeEl = document.getElementById("expressFeeText"); expressFeeEl.textContent = d.isExpress ? `+ Rp ${formatRupiah(HARGA_EXPRESS)}` : ""; document.getElementById("previewStruk").textContent = makeNota(d) }
+function simpanOrder() {
+    const orderData = getOrderForm();
+
+    // --- VALIDASI KETAT DIMULAI ---
+    if (!orderData.pelanggan) return showToast("Nama pelanggan wajib diisi!", 'error');
+    if (orderData.noHp && !/^\d{10,15}$/.test(formatNoHP(orderData.noHp))) return showToast("Nomor WhatsApp tidak valid. Pastikan hanya angka, minimal 10 digit.", 'error');
+    if (orderData.tglSelesai && new Date(orderData.tglSelesai) < new Date(orderData.tglMasuk.slice(0, 10))) return showToast('Tanggal selesai tidak boleh sebelum tanggal masuk.', 'error');
+    if (orderData.layanan.length === 0) return showToast("Minimal ada 1 layanan yang ditambahkan.", 'error');
+    for (const item of orderData.layanan) {
+        if (!item.nama) return showToast("Ada layanan yang belum dipilih. Harap periksa kembali.", 'error');
+        if (item.qty <= 0) return showToast(`Kuantitas untuk '${item.nama}' harus lebih dari 0.`, 'error');
+        if (item.harga <= 0) return showToast(`Harga untuk '${item.nama}' harus lebih dari 0.`, 'error');
+    }
+    // --- VALIDASI KETAT SELESAI ---
+
+    let db = getAllOrders();
+    const isEditing = !!document.getElementById('iOrderId').value;
+    if (isEditing) {
+        const originalCustomer = Object.keys(db).find(cust => db[cust].some(o => o.id === orderData.id));
+        if (originalCustomer && originalCustomer !== orderData.pelanggan) {
+            const orderIndex = db[originalCustomer].findIndex(o => o.id === orderData.id);
+            db[originalCustomer].splice(orderIndex, 1);
+            if (db[originalCustomer].length === 0) delete db[originalCustomer];
+        } else if (!originalCustomer) {
+            return showToast("Error: Order lama tidak ditemukan untuk diedit.", 'error');
+        }
+    }
+    db[orderData.pelanggan] || (db[orderData.pelanggan] = []);
+    const existingIndex = db[orderData.pelanggan].findIndex(o => o.id === orderData.id);
+    if (existingIndex > -1) {
+        const existingOrder = db[orderData.pelanggan][existingIndex];
+        orderData.kodeUnik = existingOrder.kodeUnik;
+        orderData.statusPengerjaan = existingOrder.statusPengerjaan;
+        orderData.statusPembayaran = existingOrder.statusPembayaran;
+        db[orderData.pelanggan][existingIndex] = orderData
+    } else {
+        db[orderData.pelanggan].push(orderData)
+    }
+    saveAllOrders(db);
+    if (!isEditing) {
+        const total = orderData.layanan.reduce((s, i) => s + i.qty * i.harga, 0) - orderData.diskon + orderData.hargaExpress;
+        addTransaksi({ tanggal: new Date().toISOString().slice(0, 10), keterangan: `Pendapatan dari order ${orderData.pelanggan}`, jumlah: total, tipe: "pendapatan", orderId: orderData.id });
+    }
+    showToast(isEditing ? "Order berhasil diperbarui!" : "Order disimpan & pendapatan dicatat!", 'success');
+    if (!isEditing && orderData.noHp) kirimNota(orderData);
+    resetForm();
+    checkBackupStatus();
+}
+function kirimNota(a) { const b = formatNoHP(a.noHp), c = makeNota(a), d = `https://wa.me/${b}?text=${encodeURIComponent(c)}`; window.open(d, "_blank") }
+function kirimNotifSelesai(order) {
+    const total = order.layanan.reduce((sum, item) => sum + item.qty * item.harga, 0) - (order.diskon || 0) + (order.hargaExpress || 0);
+    const pesan = `Halo *${order.pelanggan}*,\n\nLaundry Anda telah selesai dan siap untuk dijemput! ✨\n\n*Kode Pengambilan* Anda adalah:\n\`\`\`\n=====================\n  TIKET PENGAMBILAN\n=====================\n\nTOTAL TAGIHAN:\n*Rp ${formatRupiah(total)}*\n(${order.statusPembayaran || 'Belum Lunas'})\n\nKODE PENGAMBILAN:\n*******************\n*${order.kodeUnik}*\n*******************\n\`\`\`\nMohon tunjukkan kode ini saat pengambilan. Terima kasih telah mempercayakan cucian Anda pada *${NAMA_LAUNDRY}*!`;
+    const noHp = formatNoHP(order.noHp);
+    if (noHp) { const url = `https://wa.me/${noHp}?text=${encodeURIComponent(pesan)}`; window.open(url, "_blank"); }
+}
+function renderCustomerList(searchQuery = "") {
+    const db = getAllOrders(); const listEl = document.getElementById("customerList"); listEl.innerHTML = "";
+    const searchTerm = searchQuery.toLowerCase(); const searchCode = searchQuery.toUpperCase();
+    const filteredCustomers = Object.keys(db).filter(name => name.toLowerCase().includes(searchTerm) || db[name].some(order => order.kodeUnik?.includes(searchCode)));
+    if (filteredCustomers.length === 0) { listEl.innerHTML = '<p class="text-center text-gray-500">Tidak ada data pelanggan ditemukan.</p>'; return; }
+    filteredCustomers.forEach(customerName => {
+        const orders = db[customerName]; let siapCount = 0, prosesCount = 0;
+        orders.forEach(order => { const status = order.statusPengerjaan || 'Diterima'; if (status === 'Siap Diambil') siapCount++; else if (status !== 'Sudah Diambil') prosesCount++; });
+        const totalActiveOrders = siapCount + prosesCount;
+        const cardEl = document.createElement("div"); cardEl.className = "p-4 bg-white rounded-lg shadow-sm border cursor-pointer hover:bg-indigo-50 hover:border-indigo-400 flex justify-between items-center";
+        cardEl.onclick = () => showCustomerOrders(customerName);
+        let statusHtml = totalActiveOrders > 0 ? `<p class="text-sm text-gray-500">${totalActiveOrders} order aktif</p><div class="flex gap-1.5 mt-1.5">${'<span class="status-dot dot-blue"></span>'.repeat(siapCount)}${'<span class="status-dot dot-yellow"></span>'.repeat(prosesCount)}</div>` : `<p class="text-sm text-green-600 flex items-center gap-2"><i class="fas fa-check-circle"></i> Semua order selesai</p>`;
+        if (totalActiveOrders === 0) cardEl.classList.add('opacity-60');
+        cardEl.innerHTML = `<div><p class="font-semibold text-gray-800">${customerName}</p>${statusHtml}</div><i class="fas fa-chevron-right text-gray-400"></i>`;
+        listEl.appendChild(cardEl);
+    });
+}
+function showCustomerOrders(a) { const b = getAllOrders(), c = b[a] || [], d = document.getElementById("orderDetails"); d.innerHTML = "", document.getElementById("dbModalTitle").innerText = `Riwayat Order: ${a}`, document.getElementById("customerListContainer").classList.add("hidden"), document.getElementById("orderDetailsContainer").classList.remove("hidden");[...c].reverse().forEach(e => { const f = document.createElement("div"); f.className = "p-4 bg-white rounded-lg shadow-sm border"; const g = e.layanan.reduce((h, i) => h + i.qty * i.harga, 0) - (e.diskon || 0) + (e.hargaExpress || 0); let h = '<ul class="mt-2 space-y-1 text-sm">'; e.layanan.forEach(i => { h += `<li class="flex justify-between"><span>- ${i.nama} (${i.qty} ${i.satuan})</span> <span class="text-gray-600">Rp ${formatRupiah(i.qty * i.harga)}</span></li>` }); h += "</ul>"; if (e.diskon > 0) h += `<div class="text-sm flex justify-between mt-1"><span class="font-medium">Diskon</span><span class="text-red-600">- Rp ${formatRupiah(e.diskon)}</span></div>`; if (e.isExpress) h += `<div class="text-sm flex justify-between mt-1"><span class="font-medium">Biaya Express</span><span class="text-blue-600">+ Rp ${formatRupiah(e.hargaExpress)}</span></div>`; const statusBayarClass = (e.statusPembayaran === "Lunas") ? "tag-green" : "tag-red"; const statusBayarText = (e.statusPembayaran === "Lunas") ? "Lunas" : "Belum Lunas"; const statusPengerjaan = e.statusPengerjaan || (e.status === "selesai" ? "Sudah Diambil" : "Diterima"); const statusSelectOptions = STATUS_PENGERJAAN.map(s => `<option value="${s}" ${s === statusPengerjaan ? "selected" : ""}>${s}</option>`).join(''); f.innerHTML = `<div class="flex justify-between items-start"><div><p class="font-semibold">Tgl Masuk: ${formatTanggal(e.tglMasuk)}</p><p class="text-sm text-gray-500">ID: ${e.id}</p></div><div class="text-right"><p class="font-bold text-indigo-600 text-lg">Rp ${formatRupiah(g)}</p><p class="text-xs text-gray-500">No. HP: ${e.noHp || '-'}</p></div></div><div class="mt-3 pt-3 border-t"><div class="flex justify-between items-center gap-2"><span class="text-sm font-medium text-gray-600">Status Bayar:</span><button onclick="toggleStatusPembayaran('${a}', '${e.id}')" class="tag ${statusBayarClass} cursor-pointer">${statusBayarText}</button></div><div class="flex justify-between items-center gap-2 mt-2"><label class="text-sm font-medium text-gray-600">Status Order:</label><select onchange="updateStatusPengerjaan('${a}', '${e.id}', this.value)" class="input-field !p-1 !text-sm">${statusSelectOptions}</select></div></div>${e.kodeUnik ? `<div class="mt-3 pt-3 border-t border-gray-200"><div class="flex justify-between items-center"><span class="text-sm font-medium text-gray-600"><i class="fas fa-key text-gray-400 mr-2"></i>Kode Pengambilan:</span><div class="flex items-center gap-2"><span class="font-mono font-bold text-lg tracking-wider text-indigo-700 bg-indigo-100 px-3 py-1 rounded-md">${e.kodeUnik}</span><button onclick="copyToClipboard('${e.kodeUnik}', 'Kode pengambilan disalin!')" class="text-gray-500 hover:text-indigo-600 w-8 h-8 rounded-full hover:bg-gray-200 flex items-center justify-center" title="Salin Kode"><i class="fas fa-copy"></i></button></div></div></div>` : ''}<hr class="my-3">${h}<div class="mt-3 flex gap-2"><button class="btn btn-secondary w-full" onclick="editOrder('${a}', '${e.id}')"><i class="fas fa-pencil-alt"></i> Edit</button></div>`; d.appendChild(f) }) }
+function backToCustomerList() { document.getElementById("dbModalTitle").innerText = "Cari Order Pelanggan", document.getElementById("orderDetailsContainer").classList.add("hidden"), document.getElementById("customerListContainer").classList.remove("hidden") }
+function findOrder(customerId, orderId) { const db = getAllOrders(); if (!db[customerId]) return null; return db[customerId].find(o => o.id === orderId); }
+function editOrder(customerId, orderId) { const order = findOrder(customerId, orderId); if (!order) return showToast("Order tidak ditemukan!", 'error'); document.getElementById('formTitle').textContent = `Edit Order: ${order.pelanggan}`; document.getElementById('iOrderId').value = order.id; document.getElementById('iNamaPelanggan').value = order.pelanggan; document.getElementById('iNoHp').value = order.noHp; document.getElementById('iTanggalMasuk').value = order.tglMasuk; document.getElementById('iTanggalSelesai').value = order.tglSelesai; document.getElementById('iDiskon').value = order.diskon || ''; document.getElementById('iExpress').checked = order.isExpress || false; const layananContainer = document.getElementById('listLayanan'); layananContainer.innerHTML = ''; order.layanan.forEach(l => tambahLayananCard(l)); document.getElementById('batalEditButton').classList.remove('hidden'); hideModal('databaseView'); renderStruk(); window.scrollTo(0, 0); }
+function toggleStatusPembayaran(customerId, orderId) { let db = getAllOrders(); const orderIndex = db[customerId].findIndex(o => o.id === orderId); if (orderIndex === -1) return; const currentStatus = db[customerId][orderIndex].statusPembayaran || "Belum Lunas"; db[customerId][orderIndex].statusPembayaran = currentStatus === "Lunas" ? "Belum Lunas" : "Lunas"; saveAllOrders(db); showToast(`Status pembayaran diubah menjadi ${db[customerId][orderIndex].statusPembayaran}`, 'success'); showCustomerOrders(customerId); }
+function updateStatusPengerjaan(customerId, orderId, newStatus) { let db = getAllOrders(); const orderIndex = db[customerId].findIndex(o => o.id === orderId); if (orderIndex === -1) return; const order = db[customerId][orderIndex]; order.statusPengerjaan = newStatus; if (newStatus === 'Siap Diambil' && confirm(`Kirim notifikasi WhatsApp ke ${order.pelanggan}?`)) { kirimNotifSelesai(order); } saveAllOrders(db); showToast(`Status pengerjaan diubah menjadi ${newStatus}`, 'success'); showCustomerOrders(customerId); }
+function getTotalOrderCount() { const db = getAllOrders(); return Object.values(db).reduce((a, c) => a + c.length, 0) }
+function checkBackupStatus() { const a = JSON.parse(localStorage.getItem(BACKUP_STATUS_KEY) || "{}"), b = a.totalOrders || 0, c = getTotalOrderCount(), d = c - b, e = document.getElementById("backup-indicator"), f = document.getElementById("showSettingsButton"); d > 0 ? (e.classList.remove("hidden"), f.setAttribute("title", `Anda memiliki ${d} order baru yang belum di-backup.`)) : (e.classList.add("hidden"), f.setAttribute("title", "Pengaturan")) }
+function backupData() { if (!IS_PREMIUM) return showModal('premiumModal'); const a = { [ORDER_LS_KEY]: JSON.parse(localStorage.getItem(ORDER_LS_KEY) || "{}"), [CONFIG_LS_KEY]: JSON.parse(localStorage.getItem(CONFIG_LS_KEY) || "{}"), [REKAP_LS_KEY]: JSON.parse(localStorage.getItem(REKAP_LS_KEY) || "[]"), backupInfo: { version: "2.4", timestamp: new Date().toISOString() } }, b = JSON.stringify(a, null, 2), c = new Blob([b], { type: "application/json" }), d = URL.createObjectURL(c), e = document.createElement("a"); e.href = d, e.download = `laundry_backup_${new Date().toISOString().slice(0, 10)}.json`, document.body.appendChild(e), e.click(), document.body.removeChild(e), URL.revokeObjectURL(d), localStorage.setItem(BACKUP_STATUS_KEY, JSON.stringify({ totalOrders: getTotalOrderCount() })), showToast("Data berhasil di-backup!", "success"), checkBackupStatus() }
+function triggerRestore() { document.getElementById("restoreFile").click() }
+function restoreData(a) { const b = a.target.files[0]; if (!b) return; if (!confirm("Anda yakin ingin memulihkan data? Semua data saat ini akan ditimpa dan tidak bisa dikembalikan!")) return void (a.target.value = ""); const c = new FileReader; c.onload = function (d) { try { const e = JSON.parse(d.target.result); if (e[ORDER_LS_KEY] && e[CONFIG_LS_KEY] && e[REKAP_LS_KEY]) { localStorage.setItem(ORDER_LS_KEY, JSON.stringify(e[ORDER_LS_KEY])), localStorage.setItem(CONFIG_LS_KEY, JSON.stringify(e[CONFIG_LS_KEY])), localStorage.setItem(REKAP_LS_KEY, JSON.stringify(e[REKAP_LS_KEY])); const f = Object.values(e[ORDER_LS_KEY]).reduce((g, h) => g + h.length, 0); localStorage.setItem(BACKUP_STATUS_KEY, JSON.stringify({ totalOrders: f })), showToast("Data berhasil dipulihkan!", "success"), setTimeout(() => window.location.reload(), 1500) } else showToast("File backup tidak valid!", 'error') } catch (f) { showToast("Gagal membaca file backup. Pastikan format benar.", 'error') } finally { a.target.value = "" } }, c.readAsText(b) }
+// --- INISIALISASI & EVENT LISTENERS ---
+document.addEventListener("DOMContentLoaded", function () {
+    loadConfig();
+    resetForm();
+    checkBackupStatus();
+    initLicenseSystem();
+
+    document.getElementById('showDbButton').addEventListener('click', () => {
+        if (IS_PREMIUM) {
+            showModal('databaseView');
+            renderCustomerList();
+        } else {
+            showModal('premiumModal');
+        }
+    });
+
+    document.getElementById('showRekapButton').addEventListener('click', showRekap);
+    document.getElementById('showSettingsButton').addEventListener('click', () => {
+        const config = JSON.parse(localStorage.getItem(CONFIG_LS_KEY));
+        document.getElementById('sNamaLaundry').value = config.nama;
+        document.getElementById('sAlamatLaundry').value = config.alamat;
+        document.getElementById('sWaLaundry').value = config.wa;
+        renderLayananEditor();
+        showModal('settingsView');
+    });
+
+    document.getElementById('simpanButton').addEventListener('click', simpanOrder);
+    document.getElementById('tambahLayananButton').addEventListener('click', () => tambahLayananCard());
+    document.getElementById('backToCustomerList').addEventListener('click', backToCustomerList);
+    document.getElementById('saveSettingsButton').addEventListener('click', saveConfig);
+    document.getElementById('rekapFilterBulan').addEventListener('change', renderRekap);
+    document.getElementById('backupButton').addEventListener('click', backupData);
+    document.getElementById('restoreButton').addEventListener('click', triggerRestore);
+    document.getElementById('batalEditButton').addEventListener('click', resetForm);
+    document.getElementById('tambahLayananEditor').addEventListener('click', () => tambahLayananEditorRow());
+    document.getElementById('restoreFile').addEventListener('change', restoreData);
+    ['iNamaPelanggan', 'iNoHp', 'iTanggalMasuk', 'iTanggalSelesai', 'iDiskon', 'iExpress'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', renderStruk);
+    });
+    const listLayananContainer = document.getElementById('listLayanan');
+    listLayananContainer.addEventListener('input', e => { if (e.target.matches('.qty,.harga')) renderStruk(); });
+    listLayananContainer.addEventListener('change', e => { if (e.target.matches('.layanan')) { const parent = e.target.closest('.layanan-card'), val = e.target.value; if (layananList[val]) { parent.querySelector('.satuan').value = layananList[val].satuan; parent.querySelector('.harga').value = formatRupiah(layananList[val].harga); } else { parent.querySelector('.satuan').value = ''; parent.querySelector('.harga').value = '';} renderStruk(); } });
+    listLayananContainer.addEventListener('click', e => { const delBtn = e.target.closest('.delete-layanan'); if (delBtn) { delBtn.closest('.layanan-card').remove(); renderStruk(); } });
+    document.getElementById('searchCustomer').addEventListener('input', e => renderCustomerList(e.target.value));
+    document.querySelectorAll('input[name="transaksiTipe"]').forEach(radio => radio.addEventListener('change', e => {
+        document.getElementById('transaksiKategori').classList.toggle('hidden', e.target.value !== 'pengeluaran');
+    }));
+    document.getElementById('formTransaksi').addEventListener('submit', e => {
+        e.preventDefault();
+        const tipe = document.querySelector('input[name="transaksiTipe"]:checked').value;
+        const trans = { tanggal: document.getElementById('transaksiTanggal').value, keterangan: document.getElementById('transaksiKeterangan').value.trim(), jumlah: parseFloat(document.getElementById('transaksiJumlah').value) || 0, tipe: tipe, kategori: tipe === 'pengeluaran' ? document.getElementById('transaksiKategori').value : null };
+        
+        // Validasi Form Transaksi
+        if (!trans.keterangan) return showToast('Keterangan transaksi wajib diisi!', 'error');
+        if (!trans.tanggal) return showToast('Tanggal transaksi wajib dipilih!', 'error');
+        if (trans.jumlah <= 0) return showToast('Jumlah transaksi harus lebih dari 0.', 'error');
+        
+        addTransaksi(trans);
+        showToast('Transaksi manual berhasil dicatat!', 'success');
+        e.target.reset(); 
+        document.getElementById('transaksiId').value = ""; 
+        document.getElementById('transaksiTanggal').value = '';
+        document.getElementById('transaksiKategori').classList.add('hidden'); 
+        renderRekap();
+    });
+});
+</script>
+</body>
+</html>
