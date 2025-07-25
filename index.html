@@ -446,6 +446,29 @@ document.addEventListener("DOMContentLoaded", function () {
     checkBackupStatus();
     initLicenseSystem();
 
+// sw.js
+
+self.addEventListener('install', (event) => {
+  console.log('Service Worker: Terinstall');
+  // skipWaiting() memaksa SW yang baru untuk aktif lebih cepat
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker: Diaktifkan');
+  // clients.claim() memungkinkan SW untuk langsung mengontrol halaman
+  event.waitUntil(self.clients.claim());
+});
+
+// >>> INI BAGIAN PALING PENTING YANG HILANG <<<
+// Listener untuk event 'fetch'. Ini memberitahu browser bahwa
+// aplikasi Anda bisa menangani request jaringan.
+self.addEventListener('fetch', (event) => {
+  // Untuk sekarang, kita hanya akan mengembalikan request dari jaringan.
+  // Nantinya, Anda bisa menambahkan strategi caching di sini.
+  event.respondWith(fetch(event.request));
+});
+    
     document.getElementById('showDbButton').addEventListener('click', () => {
         if (IS_PREMIUM) {
             showModal('databaseView');
