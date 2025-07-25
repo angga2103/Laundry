@@ -7,12 +7,12 @@
   "theme_color": "#4f46e5",
   "icons": [
     {
-      "src": "/aplikasi-laundry-pwa/icons/icon-192.png",
+      "src": "/Laundry/icon-192x192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "/aplikasi-laundry-pwa/icons/icon-512.png",
+      "src": "/Laundry/icon-512x512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
