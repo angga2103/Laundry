@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Aplikasi Laundry Modern v2.4</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json"> <meta name="viewport" content="width=device-width, initial-scale=1.0">  
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsrsasign/lib/jsrsasign.min.js"></script>
@@ -446,19 +446,7 @@ document.addEventListener("DOMContentLoaded", function () {
     checkBackupStatus();
     initLicenseSystem();
 
-// sw.js
 
-self.addEventListener('install', (event) => {
-  console.log('Service Worker: Terinstall');
-  // skipWaiting() memaksa SW yang baru untuk aktif lebih cepat
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Diaktifkan');
-  // clients.claim() memungkinkan SW untuk langsung mengontrol halaman
-  event.waitUntil(self.clients.claim());
-});
 
 // >>> INI BAGIAN PALING PENTING YANG HILANG <<<
 // Listener untuk event 'fetch'. Ini memberitahu browser bahwa
